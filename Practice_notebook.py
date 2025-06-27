@@ -1,0 +1,81 @@
+# Databricks notebook source
+spark
+
+# COMMAND ----------
+
+data =[
+    (10,20,58),
+    (20,10,12),
+    (10,30,20),
+    (30,40,100),
+    (30,40,200),
+    (30,40,200),
+    (40,30,500)
+]
+df=spark.createDataFrame(data,["from_id","to_id","duration"])
+df.show()
+df.display()
+
+# COMMAND ----------
+
+from pyspark.sql.functions import when, col,count,sum
+
+swap_df = (
+    df.withColumn("PERSON1", when(col("from_id") < col("to_id"), col("from_id")).otherwise(col("to_id")))
+    .withColumn("PERSON2", when(col("from_id") > col("to_id"), col("from_id")).otherwise(col("to_id")))
+    .select("PERSON1", "PERSON2", "duration")
+)
+
+swap_df.show()
+
+# COMMAND ----------
+
+final_calls=swap_df.groupBy(col("PERSON1"),col("PERSON2")).agg(count(col("PERSON1")).alias ("call_count"),sum(col("duration")).alias ("total_duration")).select("PERSON1","PERSON2","call_count","total_duration")
+final_calls.show()
+
+# COMMAND ----------
+
+# MAGIC %md
+# MAGIC # **SQL Approach**
+
+# COMMAND ----------
+
+#register df as temp table
+df.createOrReplaceTempView("Call_data")
+call_df = spark.sql("select * from Call_data")
+call_df.show()
+
+# COMMAND ----------
+
+# MAGIC %sql
+# MAGIC select * from call_data 
+
+# COMMAND ----------
+
+# MAGIC %sql
+# MAGIC SELECT 
+# MAGIC LEAST(from_id,to_id) as PERSON1,
+# MAGIC GREATEST(from_id,to_id) as PERSON2,
+# MAGIC duration FROM call_data;
+
+# COMMAND ----------
+
+# MAGIC %sql
+# MAGIC SELECT 
+# MAGIC LEAST(from_id,to_id) as PERSON1,
+# MAGIC GREATEST(from_id,to_id) as PERSON2,
+# MAGIC COUNT(*) as call_count,
+# MAGIC SUM(duration) as total_duration
+# MAGIC FROM Call_data
+# MAGIC GROUP BY 1,2;
+
+# COMMAND ----------
+
+# MAGIC %sql
+# MAGIC SELECT 
+# MAGIC CASE WHEN from_id < to_id THEN from_id ELSE to_id END as PERSON1,
+# MAGIC CASE WHEN from_id > to_id THEN from_id ELSE to_id END as PERSON2,
+# MAGIC COUNT(*) as call_count,
+# MAGIC SUM(duration)
+# MAGIC FROM call_data
+# MAGIC GROUP BY 1,2;
