@@ -1,0 +1,268 @@
+Spark SQL - allows you to write SQL queries against Data Frames
+
+import org.apache.spark.sql.SparkSession
+import org.apache.spark.
+val sqlcontext= 
+sc-spark context ,spark-spark session objects are available inbuilt in spark-shell
+
+
+val input = List("Apache Spark is great", "Scala is powerful", "Apache Spark With Scala", "Spark and Scala", "Spark Scala Tutorial", "Scala with Spark Tutorial", "Spark on Scala", "Apache Spark Architecture","Spark Scala Architecture", "Installing Apache Spark", "Scala Build Tool", "SBT" )
+
+val wordCounts = sc.parallelize(input).flatMap(_.split(" ")).map(word => (word, 1)).reduceByKey(_ + _)
+
+wordCounts.collect().foreach(println)
+
+val emp_df=spark.read.option("header",true).option("InferSchema","true").csv("F:/docs/emp.csv")    
+emp_df.show()
+
+emp_df.select("Department","Employee ID","Name").show() 
+
+emp_df.createOrReplaceTempView("EmpDFView") --register df as sql temporary view
+
+val EMP_DF_SQL=spark.sql("SELECT * FROM EmpDFView where Department= 'IT' ");    
+EMP_DF_SQL.show()
+
+emp_df.write.json("F:/spark/output/emp_filtered")
+
+val cust_df=spark.read.option("header",true).option("InferSchema","true").csv("F:/docs/customers.csv")   
+cust_df.show()  
+     
+val orders_df=spark.read.option("header",true).option("InferSchema","true").csv("F:/docs/orders.csv")  
+orders_df.show()  
+ 
+orders_df.filter("amount<200").show()  
+orders_df.filter("amount=567").show()
+orders_df.filter("product='Mouse'").show()   
+
+
+val emp_rdd=sc.textFile("F:/docs/emp.txt")  
+emp_rdd.foreach(println)  
+
+
+-------------PROGRAM IN SPARK SCALA----------------------
+// Create SparkSession
+import org.apache.spark.sql.SparkSession
+val spark:SparkSession = SparkSession.builder().master("local[1]").appName("SparkByExamples.com").getOrCreate() 
+ basic method to create RDD.
+
+
+//Create RDD from parallelize    
+val dataSeq = Seq(("Java", 20000), ("Python", 100000), ("Scala", 3000))   
+val rdd=spark.sparkContext.parallelize(dataSeq)
+
+//Create RDD from external Data source(HDFS,local) Using textFile() method
+val rdd2 = spark.sparkContext.textFile("/path/textFile.txt")  
+
+//Some  Transformations on RDD are flatMap(), map(), reduceByKey(), filter(), sortByKey() -> return new RDD.
+//Some actions on RDDs are count(),  collect(),  first(),  max(),  reduce() 
+
+
+Data Frame = rdd.toDF(columns)- scala ide
+
+Data Frame =spark.createDataFrame(rdd).toDF(columns:_*)
+Data Frame =spark.createDataFrame(rdd,[col1,col2,...])
+eg:  df = spark.createDataFrame(user_data rdd, ["user_id", "date"])
+
+Data Frame =spark.read.option("header","true").option(InferSchema","true").csv(path)
+Data Frame =spark.read.format("csv").option("header","true").option(InferSchema","true").load(path/url)
+
+
+from pyspark.sql.types import StructField, StructType, IntegerType, StringType, LongType, DateType, DecimalType, BooleanType,DoubleType
+from pyspark.sql.functions import col,when,sum,avg,count,row_number
+from pyspark.sql.window import window
+import org.apache.spark.sql.types.{StructType, StructField, StringType, IntegerType, LongType, DoubleType}
+from pyspark.sql import SparkSession
+#create session
+spark=SparkSession.builder().appName("Name of app").getOrCreate()
+schema_name= StructType([
+StructField("colname",StringType(),True),
+StructField("colname1",IntegerType(),True),
+StructField("colname2",DateType(),True),
+StructField("colname3",BooleanType(),True),
+StructField("colname4",LongType(),True),
+StructField("colname5",DecimalType(),True),
+StructField("colname6",DoubleType(),True),
+
+])
+Data Frame =spark.read.schema(schema_name).format("csv").option("header","true").load(path/url)
+
+// Create DataFrame
+val numbers=(1to100)
+val col=("Number")
+val num_df=numbers.toDF(col)
+
+val data= Seq(("James","","Smith","1991-04-01","M",3000),("Michael","Rose","","2000-05-19","M",4000),("Robert","","Williams","1978-09-05","M",4000),("Maria","Anne","Jones","1967-12-01","F",4000),("Jen","Mary","Brown","1980-02-17","F",-1))
+
+val columns = Seq("firstname","middlename","lastname","dob","gender","salary")
+val Seq_df = spark.createDataFrame(data).toDF(columns:_*)
+
+
+//Spark SQL-
+df.createOrReplaceTempView("PERSON_DATA")
+val df2 = spark.sql("SELECT * from PERSON_DATA")
+df2.printSchema()
+df2.show()
+
+val groupDF = spark.sql("SELECT gender, count(*) from PERSON_DATA group by gender")
+groupDF.show()
+
+df.write.format("json").mode("overwrite").save("/tmp/json_data")
+
+-------------CHRUN DATA ANALYSIS------------------------
+User - not logged in 30 days -cvchurn risk = days_inactive>=30 then yes  
+days_inactive= currentdate - lastlogin date 
+last login date=group by user and max of login date
+val user_data= List(
+("U1","2025-04-15"),
+("U2","2025-03-01"),
+("U3","2024-11-01"),
+("U4","2025-02-27"),
+("U1","2025-04-24"),
+("U5","2025-05-01"),
+("U1","2025-03-11"),
+("U2","2025-12-05"),
+("U2","2024-05-09"),
+("U4","2025-01-30"),
+("U1","2025-04-20"),
+("U5","2025-02-05"),
+("U3","2025-02-15")
+)
+
+val user_login_DF = user_data.toDF("user_id","login_date").withColumn("login_date",to_date($"login_date","yyyy-MM-dd"))
+val user_last_login = user_login_DF.groupBy("user_id").agg(max(login_date).alias("last_login_date"))
+
+ val churn_risk=user_last_login.withColumn("Inactive_days",date_diff(lit("2025-05-11"),$"last_login_date")).withColumn("Churn Risk",when($"Inactive_days">=30,"Yes").otherwise("No"))    
+churn_risk.show()    
+
+
+------------PRODUCT RECOMMENDATION FOR USERS-----------------------
+
+val input_data = List(
+("U1","P1","2025-04-15"),
+("U1","P2","2025-04-18"),
+("U1","P1","2025-04-20"),
+("U2","P3","2025-02-01"),
+("U2","P3","2025-03-15"),
+("U2","P4","2025-04-01"),
+("U2","P4","2025-04-30"),
+("U3","P5","2025-04-11"),
+("U3","P5","2025-04-11"),
+("U3","P6","2025-04-20"),
+("U3","P5","2025-05-01"),
+("U3","P6","2025-05-05")
+)
+
+ val user_purchase_data=input_data.toDF("user_id","product_id","purchase_date").withColumn("purchase_date",to_date($"purchase_date","yyyy-MM-dd"))
+
+## last 90 days=currentdate-purchasedate
+
+val filtered_details = user_purchase_data.filter(date_diff(current_date,$"purchase_date")<=90)
++-------+----------+-------------+
+|user_id|product_id|purchase_date|
++-------+----------+-------------+
+|     U1|        P1|   2025-04-15|
+|     U1|        P2|   2025-04-18|
+|     U1|        P1|   2025-04-20|
+|     U2|        P4|   2025-04-30|
+|     U3|        P5|   2025-04-11|
+|     U3|        P5|   2025-04-11|
+|     U3|        P6|   2025-04-20|
+|     U3|        P5|   2025-05-01|
+|     U3|        P6|   2025-05-05|
++-------+----------+-------------+
+
+## frequent purchase -group by user,product and count product
+
+val frequent_purchase_details = filtered_details.groupBy("user_id","product_id").agg(count(*).as("product_count"),max($"purchase_date").as("purchase_date"))
+
++-------+----------+-------------+-------------+
+|user_id|product_id|product_count|purchase_date|
++-------+----------+-------------+-------------+
+|     U1|        P1|            2|   2025-04-20|
+|     U1|        P2|            1|   2025-04-18|
+|     U2|        P4|            1|   2025-04-30|
+|     U3|        P5|            3|   2025-05-01|
+|     U3|        P6|            2|   2025-05-05|
++-------+----------+-------------+-------------+
+
+##top purchased product by user- ranking -window
+import org.apache.spark.sql.expressions.Window
+
+val ranked_details = frequent_purchase_details.withColumn("Rank",row_number().over(Window.partitionBy($"user_id").orderBy(desc("product_count"),desc("purchase_date")))).show()
++-------+----------+-------------+-------------+----+
+|user_id|product_id|product_count|purchase_date|Rank|
++-------+----------+-------------+-------------+----+
+|     U1|        P1|            2|   2025-04-20|   1|
+|     U1|        P2|            1|   2025-04-18|   2|
+|     U2|        P4|            1|   2025-04-30|   1|
+|     U3|        P5|            3|   2025-05-01|   1|
+|     U3|        P6|            2|   2025-05-05|   2|
++-------+----------+-------------+-------------+----+
+
+val ranked_details = frequent_purchase_details.withColumn("Rank",row_number().over(Window.partitionBy($"user_id").orderBy(desc("product_count"),desc("purchase_date")))).filter($"Rank"===1).select($"user_id",$"product_id")
+
++-------+----------+
+|user_id|product_id|
++-------+----------+
+|     U1|        P1|
+|     U2|        P4|
+|     U3|        P5|
++-------+----------+
+
+---------------------Revenue Aggregation per region and category-------------
+
+
+
+-------------------IPL_DATA_ANALYSIS-------------------------------
+s3 location:  s3://ipl-data-analysis-project/Ball_By_Ball.csv.Match.csv,Player.csv,Player_match.csv,Team.csv
+
+
+-----------------------------------------------------------------------------------------------
+from pyspark.sql import SparkSession
+spark=SparkSession.builder.appName("Spark Examples").getOrCreate()
+
+input_data=[(1,"anu",25),(2,"sai",26),(3,"sam",20)]
+rdd=spark.sparkContext.parallelize(input_data)
+
+cdf=rdd.toDF(["id","name","age"])
+cdf.show()
+
+c_df= spark.createDataFrame(rdd,["id","name","age"])
+c_df.show()
+
+cust_df=spark.read.option("header",True).csv("/samples/customers.csv")
+
+cust_df.createOrReplaceTempView("cust")
+result=spark.sql("select * from cust")
+result.show(5)
+
+output=spark.write.option("header",True).csv("/samples/customers1.csv")
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+                                                                                                     
