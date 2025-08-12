@@ -1,0 +1,108 @@
+Spark SQL Examples
+1
+2
+3
+Spark SQL is a module in Apache Spark that integrates relational processing with Spark's functional programming API. It allows querying structured data using SQL or DataFrame APIs, making it a powerful tool for data analysis and processing.
+
+Setting Up Spark SQL
+
+To use Spark SQL, you need to create a SparkSession, which serves as the entry point for DataFrame and SQL functionality.
+
+from pyspark.sql import SparkSession
+
+# Create SparkSession
+spark = SparkSession.builder \
+.appName("Spark SQL Examples") \
+.getOrCreate()
+Creating a DataFrame
+
+DataFrames can be created from various sources like CSV, JSON, or programmatically.
+
+# Create a DataFrame from a CSV file
+df = spark.read.option("header", True).csv("path/to/your/csvfile.csv")
+df.show()
+Registering a Temporary View
+
+You can register a DataFrame as a temporary view to query it using SQL.
+
+# Register DataFrame as a temporary view
+df.createOrReplaceTempView("my_table")
+
+# Run SQL query
+result = spark.sql("SELECT column1, column2 FROM my_table WHERE column3 = 'value'")
+result.show()
+Common SQL Operations
+
+Selecting Columns
+
+# Using DataFrame API
+df.select("column1", "column2").show()
+
+# Using SQL
+spark.sql("SELECT column1, column2 FROM my_table").show()
+Filtering Rows
+
+# Using DataFrame API
+df.filter(df["column3"] == "value").show()
+
+# Using SQL
+spark.sql("SELECT * FROM my_table WHERE column3 = 'value'").show()
+Sorting Data
+
+# Using DataFrame API
+df.orderBy("column1").show()
+
+# Using SQL
+spark.sql("SELECT * FROM my_table ORDER BY column1").show()
+Grouping and Aggregation
+
+# Using DataFrame API
+df.groupBy("column1").count().show()
+
+# Using SQL
+spark.sql("SELECT column1, COUNT(*) as count FROM my_table GROUP BY column1").show()
+Joining Tables
+
+# Create another DataFrame
+df2 = spark.read.option("header", True).csv("path/to/another/csvfile.csv")
+
+# Register as a temporary view
+df2.createOrReplaceTempView("another_table")
+
+# Perform SQL join
+spark.sql("""
+SELECT a.column1, b.column2
+FROM my_table a
+JOIN another_table b
+ON a.common_column = b.common_column
+""").show()
+Advanced Example: Adding Columns
+
+You can add new columns to a DataFrame using transformations.
+
+from pyspark.sql.functions import when, col
+
+# Add a new column based on conditions
+df = df.withColumn("new_column", when(col("column1") > 10, "High").otherwise("Low"))
+df.show()
+Structured Streaming Example
+
+Spark SQL also supports real-time data processing using Structured Streaming.
+
+# Read streaming data from Kafka
+stream_df = spark.readStream.format("kafka") \
+.option("kafka.bootstrap.servers", "localhost:9092") \
+.option("subscribe", "topic_name") \
+.load()
+
+# Process and write the stream to a Parquet file
+query = stream_df.writeStream \
+.format("parquet") \
+.option("path", "path/to/output") \
+.option("checkpointLocation", "path/to/checkpoint") \
+.start()
+
+query.awaitTermination()
+Conclusion
+
+Spark SQL provides a seamless way to work with structured data using both SQL and DataFrame APIs. It supports a wide range of operations, including filtering, grouping, joining, and real-time streaming, making it a versatile tool for data engineers and analysts.
