@@ -1,0 +1,164 @@
+Apache Spark, a powerful distributed computing framework, provides Spark SQL as a component that allows us to interact with structured data using SQL-like queries.
+Spark SQL is spark module for structured data processing using SQL and data frame APIs
+native support for spark to SQL - allows to query the data stored in RDD's and external sources.
+
+1. Import data from parquet files/Hive tables
+2. Run SQL queries over imported data(DF)/RDDS
+3. Write RDDs to Hive/Parquet Files
+
+DataFrames are at the heart of Spark SQL. special programmatic component to work with spark SQL
+# Read CSV file into a DataFrame
+df_csv = spark.read.csv("path/to/your/file.csv", header=True, inferSchema=True)
+
+# Create DataFrame from JSON data
+df_json = spark.read.json("path/to/your/file.json")
+
+# Create DataFrame from Parquet file
+df_parquet = spark.read.parquet("path/to/your/file.parquet")
+
+# Create DataFrame from existing RDD
+rdd = spark.sparkContext.parallelize([(1, "John"), (2, "Jane"), (3, "Alice")])
+df_rdd = rdd.toDF(["id", "name"])
+
+
+to execute SQL queries on DataFrames using Spark SQL’s SQL API. 
+# Register DataFrame as a temporary table
+df_csv.createOrReplaceTempView("my_table")
+
+# Execute a SQL query on the DataFrame
+result = spark.sql("SELECT * FROM my_table WHERE age > 25")
+
+# Display the query result
+result.show()
+
+
+Data Manipulation
+
+# Filter rows based on a condition
+filtered_df = df.filter(df.age > 25)
+
+# Sort DataFrame by a column
+sorted_df = df.orderBy(df.name.asc())
+
+# Select specific columns
+selected_df = df.select("name", "age")
+
+# Add a new column
+df_with_new_column = df.withColumn("is_adult", df.age >= 18)
+
+# Handling missing or null values
+df_with_no_missing_values = df.dropna()
+
+# Using User-Defined Functions (UDFs)
+from pyspark.sql.functions import udf
+
+@udf
+def double_age(age):
+ return age * 2
+df_with_double_age = df.withColumn("double_age", double_age(df.age))
+
+Aggregations and Grouping
+
+
+# Perform aggregation using count and groupBy
+result = df.groupBy("city").count()
+
+# Perform aggregation using average
+result = df.groupBy("city").avg("salary")
+
+# Perform aggregation using window functions
+from pyspark.sql.window import Window
+from pyspark.sql.functions import row_number
+window_spec = Window.partitionBy("department").orderBy(df.salary.desc())
+ranked_df = df.withColumn("rank", row_number().over(window_spec))
+
+Joining Data Frames
+
+# Join two DataFrames using inner join
+joined_df = df1.join(df2, "id", "inner")
+
+# Join two DataFrames using left join
+joined_df = df1.join(df2, "id", "left")
+
+# Join two DataFrames using full outer join
+joined_df = df1.join(df2, "id", "outer")
+
+# Join two DataFrames using right join
+joined_df = df1.join(df2, "id", "right")
+
+
+Performance Optimization
+
+1. Partitioning divides data into smaller subsets, enabling efficient operations by reading only relevant partitions.
+2. Bucketing organizes data into fixed buckets based on hash values, facilitating faster joins and aggregations.
+3. Caching stores intermediate DataFrames or query results in memory, 
+ By leveraging these techniques, Spark SQL minimizes data shuffling, reduces I/O operations, and improves overall query execution
+
+# Partition DataFrame based on a column
+partitioned_df = df.repartition("date")
+
+# Bucket DataFrame based on a column
+bucketed_df = df.write.bucketBy(10, "id").saveAsTable("bucketed_table")
+
+# Cache DataFrame in memory for faster access
+df.cache()
+
+
+
+------------------------------------------------------------------------------------------------------------------
+
+# Import SparkSession
+from pyspark.sql import SparkSession
+
+# Create a SparkSession
+spark = SparkSession.builder.appName("Example").getOrCreate()
+
+
+# Load the dataset into a DataFrame
+df = spark.read.csv("path/to/reviews.csv", header=True, inferSchema=True)
+spark.read.format("csv").option("header",True).load("path/to/reviews.csv")
+#To view the schema of the DataFrame:
+df.printSchema()
+#To display the first few rows of the DataFrame:
+df.show()
+#To get summary statistics of numerical columns:
+df.describe().show()
+#To count the number of rows in the DataFrame:
+print("Number of rows:", df.count())
+
+df.createOrReplaceTempView("reviews")
+query = "SELECT reviewerID, COUNT(*) as reviewCount FROM reviews GROUP BY reviewerID ORDER BY reviewCount DESC LIMIT 10"
+top_reviewers = spark.sql(query)
+
+from pyspark.sql.functions import udf
+from pyspark.sql.types import StringType
+
+# Define a UDF to perform sentiment analysis
+def analyze_sentiment(text):
+ # Add your sentiment analysis logic here
+ return "positive" if text.count("good") > text.count("bad") else "negative"
+
+# Register the UDF
+sentiment_udf = udf(analyze_sentiment, StringType())
+spark.udf.register("analyze_sentiment", sentiment_udf)
+
+# Apply sentiment analysis on the review text
+df = df.withColumn("sentiment", analyze_sentiment(df["reviewText"]))
+
+query = "SELECT category, AVG(overall) as averageRating FROM reviews GROUP BY category ORDER BY averageRating DESC"
+average_ratings = spark.sql(query)
+
+we can convert the results to a Pandas DataFrame and leverage popular Python libraries like Matplotlib for visualization.
+
+import pandas as pd
+import matplotlib.pyplot as plt
+
+# Convert the DataFrame to a Pandas DataFrame
+top_reviewers_df = top_reviewers.toPandas()
+
+# Visualize the top reviewers
+plt.bar(top_reviewers_df["reviewerID"], top_reviewers_df["reviewCount"])
+plt.xlabel("Reviewer ID")
+plt.ylabel("Review Count")
+plt.title("Top Reviewers")
+plt.show()
